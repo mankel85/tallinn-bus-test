@@ -1,17 +1,32 @@
+
 import tempfile
 import requests
 import zipfile
 import io
 import csv
+import os
+import time
 from datetime import datetime
 
-def find_oilme_stops_and_routes():
+CACHE_PATH = "/tmp/gtfs.zip"
+CACHE_TTL = 60 * 60  # 1 hour
+
+def download_gtfs():
+    now = time.time()
+    if os.path.exists(CACHE_PATH):
+        if now - os.path.getmtime(CACHE_PATH) < CACHE_TTL:
+            print("Using cached GTFS data")
+            return CACHE_PATH
+
+    print("Downloading fresh GTFS data")
     zip_url = 'https://transport.tallinn.ee/data/gtfs.zip'
     response = requests.get(zip_url)
-    zip_path = tempfile.mktemp()
-    with open(zip_path, 'wb') as f:
+    with open(CACHE_PATH, 'wb') as f:
         f.write(response.content)
+    return CACHE_PATH
 
+def find_oilme_stops_and_routes():
+    zip_path = download_gtfs()
     oilme_stop_ids = []
     routes_data = {}
     trips_data = {}
@@ -51,12 +66,7 @@ def find_oilme_stops_and_routes():
     }
 
 def get_schedule_for_route(route_short_name):
-    zip_url = 'https://transport.tallinn.ee/data/gtfs.zip'
-    response = requests.get(zip_url)
-    zip_path = tempfile.mktemp()
-    with open(zip_path, 'wb') as f:
-        f.write(response.content)
-
+    zip_path = download_gtfs()
     oilme_stop_ids = []
     matched_route_ids = set()
     matched_trip_ids = set()
