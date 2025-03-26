@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="et">
 <head>
@@ -8,10 +9,7 @@
 <body>
   <h2>Vali liin</h2>
   <select id="routeSelect">
-    <option disabled selected>Vali...</option>
-    {% for route in routes %}
-      <option value="{{ route }}">{{ route }}</option>
-    {% endfor %}
+    <option disabled selected>Laen liine...</option>
   </select>
 
   <ul id="scheduleList"></ul>
@@ -20,15 +18,43 @@
     const select = document.getElementById('routeSelect');
     const list = document.getElementById('scheduleList');
 
+    // Lae liinid dünaamiliselt
+    async function loadRoutes() {
+      try {
+        const res = await fetch('/api/routes');
+        const routes = await res.json();
+        select.innerHTML = '<option disabled selected>Vali...</option>';
+        routes.forEach(route => {
+          const opt = document.createElement('option');
+          opt.value = route;
+          opt.textContent = route;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        select.innerHTML = '<option disabled>Viga liinide laadimisel</option>';
+      }
+    }
+
+    // Lae ajad valitud liini kohta
     select.addEventListener('change', async () => {
-      const res = await fetch('/api/schedule/' + select.value);
-      const data = await res.json();
-      list.innerHTML = '';
-      data.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = item.time + " → " + item.headsign;
-        list.appendChild(li);
-      });
+      const route = select.value;
+      list.innerHTML = '<li>Laen aegu...</li>';
+      try {
+        const res = await fetch('/api/schedule/' + route);
+        const data = await res.json();
+        list.innerHTML = '';
+        if (data.length === 0) {
+          list.innerHTML = '<li>Ei leitud väljumisi</li>';
+        } else {
+          data.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.time + " → " + item.headsign;
+            list.appendChild(li);
+          });
+        }
+      } catch (err) {
+        list.innerHTML = '<li>Viga andmete laadimisel</li>';
+      }
     });
 
     if ('serviceWorker' in navigator) {
@@ -36,6 +62,8 @@
         .then(reg => console.log('Service Worker registered:', reg))
         .catch(err => console.error('SW registration failed:', err));
     }
+
+    loadRoutes();
   </script>
 </body>
 </html>
