@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8">
+  <title>Tallinna bussiajad</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <h2>Vali liin</h2>
+  <select id="routeSelect">
+    <option disabled selected>Vali...</option>
+    {% for route in routes %}
+      <option value="{{ route }}">{{ route }}</option>
+    {% endfor %}
+  </select>
+
+  <ul id="scheduleList"></ul>
+
+  <script>
+    const select = document.getElementById('routeSelect');
+    const list = document.getElementById('scheduleList');
+
+    select.addEventListener('change', async () => {
+      const res = await fetch('/api/schedule/' + select.value);
+      const data = await res.json();
+      list.innerHTML = '';
+      data.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item.time + " → " + item.headsign;
+        list.appendChild(li);
+      });
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/serviceworker.js')
+        .then(reg => console.log('Service Worker registered:', reg))
+        .catch(err => console.error('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
